@@ -138,10 +138,6 @@ jobs:
           key: gnutls-v1
       - uses: actions/cache@v4
         with:
-          path: toolchains/llvm-mingw-20260421-ucrt-macos-universal
-          key: mingw-v1
-      - uses: actions/cache@v4
-        with:
           path: |
             research/freetype
             build/freetype-ios/build
