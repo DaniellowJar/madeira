@@ -23,6 +23,12 @@
 #define STDMETHODCALLTYPE
 #endif
 
+#ifndef BEGIN_INTERFACE
+#define BEGIN_INTERFACE
+#define END_INTERFACE
+#define CONST_VTBL const
+#endif
+
 #ifndef __IUnknown_INTERFACE_DEFINED__
 #define __IUnknown_INTERFACE_DEFINED__
 
