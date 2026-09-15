@@ -14,7 +14,18 @@ if [ ! -d FEX/External/range-v3/.git ]; then
         > FEX/submodules.log 2>&1 || { tail -30 FEX/submodules.log; exit 1; }
 fi
 
-if [ ! -f FEX/build-ios/FEXCore/Source/libFEXCore.a ]; then
+echo "==> verifying FEX archives"
+REQUIRED=(
+    FEXCore/Source/libFEXCore.a
+    FEXCore/Source/libFEXCore_Base.a
+    FEXCore/Source/libJemallocLibs.a
+    External/fmt/libfmt.a
+    External/cephes/libcephes_128bit.a
+    External/xxhash/cmake_unofficial/libxxhash.a
+    External/SoftFloat-3e/libsoftfloat_3e.a
+)
+
+if [ ! -f FEX/build-ios/"${REQUIRED[0]}" ]; then
     echo "==> [3a] configure FEX for iOS"
     rm -rf FEX/build-ios
     cmake -S FEX -B FEX/build-ios -G Ninja \
@@ -32,27 +43,19 @@ if [ ! -f FEX/build-ios/FEXCore/Source/libFEXCore.a ]; then
         -DCMAKE_CROSSCOMPILING=ON \
         > FEX/cmake-ios.log 2>&1 \
         || { echo "FEX cmake FAILED"; tail -60 FEX/cmake-ios.log; exit 1; }
-    echo "==> [3b] build FEX"
-    cmake --build FEX/build-ios -j "$NCPUS" > FEX/build-ios.log 2>&1 \
+    echo "==> [3b] build FEX (static archives only, skipping FEXCore_shared dylib)"
+    ninja -C FEX/build-ios -j "$NCPUS" "${REQUIRED[@]}" \
+        > FEX/build-ios.log 2>&1 \
         || { echo "FEX build FAILED"; tail -80 FEX/build-ios.log; exit 1; }
 fi
 
-echo "==> verifying FEX archives"
-REQUIRED=(
-    FEX/build-ios/FEXCore/Source/libFEXCore.a
-    FEX/build-ios/FEXCore/Source/libFEXCore_Base.a
-    FEX/build-ios/FEXCore/Source/libJemallocLibs.a
-    FEX/build-ios/External/fmt/libfmt.a
-    FEX/build-ios/External/cephes/libcephes_128bit.a
-    FEX/build-ios/External/xxhash/cmake_unofficial/libxxhash.a
-    FEX/build-ios/External/SoftFloat-3e/libsoftfloat_3e.a
-)
 ok=1
 for f in "${REQUIRED[@]}"; do
-    if [ -f "$f" ]; then
-        echo "    OK $f ($(du -h "$f" | cut -f1))"
+    p="FEX/build-ios/$f"
+    if [ -f "$p" ]; then
+        echo "    OK $p ($(du -h "$p" | cut -f1))"
     else
-        echo "    MISSING $f"
+        echo "    MISSING $p"
         ok=0
     fi
 done
