@@ -31,8 +31,13 @@ fi
 
 cd "$REPO"
 
-echo "==> [2c] generate widl dwrite headers"
-for idl in dwrite dwrite_1 dwrite_2 dwrite_3; do
+echo "==> [2c] generate widl headers"
+# DirectWrite support headers the generated dwrite.h chain pulls in.
+# We must generate them from the .idl sources (as a real wine build
+# does) because wine does not ship them as static headers and
+# mingw-w64's copies assume a Win32 target. ole2.h and unknwn.h are
+# provided by shims in build/ntdll-unix/shims.
+for idl in dxgiformat dcommon dwrite dwrite_1 dwrite_2 dwrite_3; do
     if [ ! -f "wine/build-macos/include/$idl.h" ]; then
         wine/build-macos/tools/widl/widl -h -o "wine/build-macos/include/$idl.h" \
             "wine/include/$idl.idl" 2> "wine/build-macos/include/$idl.h.widl-err" \
