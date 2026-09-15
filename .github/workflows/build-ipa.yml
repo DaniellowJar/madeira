@@ -88,7 +88,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: FEX/build-ios
-          key: fex-v2
+          key: fex-v3
       - name: Build FEX for iOS
         shell: bash
         run: bash .github/ci/03-fex.sh
@@ -185,7 +185,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: FEX/build-ios
-          key: fex-v2
+          key: fex-v3
       - uses: actions/download-artifact@v4
         with:
           name: unixlibs
