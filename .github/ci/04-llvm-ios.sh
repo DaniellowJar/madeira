@@ -69,7 +69,10 @@ cmake -S "$LLVM_SRC" -B "$IOS_BUILD" -G Ninja \
     -DLLVM_ENABLE_TERMINFO=OFF -DLLVM_ENABLE_PLUGINS=OFF \
     > "$IOS_BUILD/configure.log" 2>&1 \
     || { echo "iOS cmake FAILED"; tail -80 "$IOS_BUILD/configure.log"; exit 1; }
-cmake --build "$IOS_BUILD" -j "$NCPUS" > "$IOS_BUILD/build.log" 2>&1 \
+static_libs=$(ninja -C "$IOS_BUILD" -t targets all 2>/dev/null \
+    | awk -F: '/^lib\/[^:]*\.a:/ {print $1}' | sort -u)
+[ -n "$static_libs" ] || { echo "no LLVM static lib targets"; exit 1; }
+ninja -C "$IOS_BUILD" $static_libs -j "$NCPUS" > "$IOS_BUILD/build.log" 2>&1 \
     || { echo "iOS LLVM build FAILED"; tail -80 "$IOS_BUILD/build.log"; exit 1; }
 
 nlibs=$(ls "$IOS_BUILD/lib/"*.a | wc -l | tr -d ' ')

@@ -112,7 +112,7 @@ jobs:
           path: |
             toolchains/llvm-ios-build
             toolchains/llvm-host-build
-          key: llvmios-v2
+          key: llvmios-v3
       - name: Build LLVM for iOS
         shell: bash
         run: bash .github/ci/04-llvm-ios.sh
@@ -155,7 +155,7 @@ jobs:
           path: |
             toolchains/llvm-ios-build
             toolchains/llvm-host-build
-          key: llvmios-v2
+          key: llvmios-v3
       - name: Build unix libraries
         shell: bash
         run: bash .github/ci/05-unixlibs.sh
