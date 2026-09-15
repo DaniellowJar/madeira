@@ -31,6 +31,7 @@ fi
 
 if [ ! -x "$HOST_BUILD/bin/llvm-tblgen" ]; then
     echo "==> [4b] host llvm-tblgen"
+    rm -rf "$HOST_BUILD"
     mkdir -p "$HOST_BUILD" "$IOS_BUILD"
     cmake -S "$LLVM_SRC" -B "$HOST_BUILD" -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
@@ -48,6 +49,7 @@ fi
 echo "    host llvm-tblgen OK: $HOST_BUILD/bin/llvm-tblgen"
 
 echo "==> [4c] iOS static libs"
+rm -rf "$IOS_BUILD"
 mkdir -p "$IOS_BUILD"
 cmake -S "$LLVM_SRC" -B "$IOS_BUILD" -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
