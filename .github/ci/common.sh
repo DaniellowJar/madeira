@@ -14,6 +14,13 @@ export BREW_PREFIX="$(brew --prefix 2>/dev/null || true)"
 if [ -n "$BREW_PREFIX" ] && [ -d "$BREW_PREFIX/opt/llvm/bin" ]; then
     export PATH="$BREW_PREFIX/opt/llvm/bin:$PATH"
 fi
+# Homebrew bison/flex (Apple's are too old)
+if [ -n "$BREW_PREFIX" ] && [ -d "$BREW_PREFIX/opt/bison/bin" ]; then
+    export PATH="$BREW_PREFIX/opt/bison/bin:$PATH"
+fi
+if [ -n "$BREW_PREFIX" ] && [ -d "$BREW_PREFIX/opt/flex/bin" ]; then
+    export PATH="$BREW_PREFIX/opt/flex/bin:$PATH"
+fi
 
 MINGW_BIN="$TOOLCHAINS/llvm-mingw-20260421-ucrt-macos-universal/bin"
 [ -d "$MINGW_BIN" ] && export MINGW_BIN || export MINGW_BIN=""

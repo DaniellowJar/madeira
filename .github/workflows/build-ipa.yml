@@ -52,9 +52,9 @@ jobs:
         with:
           fetch-depth: 1
           submodules: false
-      - name: Install homebrew deps (gnutls, pkg-config)
+      - name: Install homebrew deps (gnutls, pkg-config, bison, flex)
         shell: bash
-        run: brew install gnutls pkg-config
+        run: brew install gnutls pkg-config bison flex
       - uses: actions/cache@v4
         with:
           path: wine/build-macos
