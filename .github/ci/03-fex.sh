@@ -16,6 +16,7 @@ if [ ! -f FEX/build-ios/FEXCore/Source/libFEXCore.a ]; then
     echo "==> [3a] configure FEX for iOS"
     cmake -S FEX -B FEX/build-ios -G Ninja \
         -DCMAKE_SYSTEM_NAME=iOS \
+        -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
         -DCMAKE_OSX_SYSROOT=iphoneos \
         -DCMAKE_OSX_ARCHITECTURES=arm64 \
         -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
