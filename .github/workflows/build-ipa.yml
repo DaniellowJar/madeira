@@ -16,7 +16,7 @@ permissions:
 jobs:
   toolchains:
     name: toolchains (mingw / gnutls / freetype)
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +45,7 @@ jobs:
 
   wine-host:
     name: wine-host (build-macos headers/tools)
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
@@ -75,7 +75,7 @@ jobs:
 
   fex:
     name: fex (iOS static libs)
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 240
     steps:
       - uses: actions/checkout@v4
@@ -97,7 +97,7 @@ jobs:
 
   llvm-ios:
     name: llvm-ios (LLVM 15 iOS static libs)
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 300
     steps:
       - uses: actions/checkout@v4
@@ -121,7 +121,7 @@ jobs:
 
   unixlibs:
     name: unixlibs (ntdll / win32u / wineserver / dxmt)
-    runs-on: macos-14
+    runs-on: macos-15
     needs: [toolchains, wine-host, llvm-ios]
     timeout-minutes: 240
     steps:
@@ -174,7 +174,7 @@ jobs:
 
   ipa:
     name: ipa (app + release)
-    runs-on: macos-14
+    runs-on: macos-15
     needs: [unixlibs, fex]
     timeout-minutes: 90
     steps:
