@@ -41,8 +41,8 @@ compile_one() {
         SUCCEEDED=$((SUCCEEDED + 1))
     else
         echo "FAILED"
-        FAILED=$((FAILED + 1))
-        FAILED_FILES="$FAILED_FILES $name"
+        cat "$OBJ_DIR/$name.err"
+        exit 1
     fi
 }
 
@@ -76,8 +76,8 @@ compile_unixlib() {
         SUCCEEDED=$((SUCCEEDED + 1))
     else
         echo "FAILED"
-        FAILED=$((FAILED + 1))
-        FAILED_FILES="$FAILED_FILES $name"
+        cat "$OBJ_DIR/$name.err"
+        exit 1
     fi
 }
 
