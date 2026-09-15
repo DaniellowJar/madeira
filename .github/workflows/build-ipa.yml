@@ -57,6 +57,10 @@ jobs:
         run: brew install gnutls pkg-config bison flex
       - uses: actions/cache@v4
         with:
+          path: toolchains/llvm-mingw-20260421-ucrt-macos-universal
+          key: mingw-v1
+      - uses: actions/cache@v4
+        with:
           path: wine/build-macos
           key: winehost-v1
       - uses: actions/cache@v4

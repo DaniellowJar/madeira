@@ -11,6 +11,10 @@ cd "$REPO"
 if [ ! -d FEX/.git ]; then
     git submodule update --init --depth 100 FEX
 fi
+if [ ! -d FEX/External/range-v3/.git ]; then
+    git -C FEX submodule update --init --recursive --depth 100 \
+        > FEX/submodules.log 2>&1 || { tail -30 FEX/submodules.log; exit 1; }
+fi
 
 if [ ! -f FEX/build-ios/FEXCore/Source/libFEXCore.a ]; then
     echo "==> [3a] configure FEX for iOS"
@@ -20,6 +24,7 @@ if [ ! -f FEX/build-ios/FEXCore/Source/libFEXCore.a ]; then
         -DCMAKE_SYSTEM_PROCESSOR=aarch64 \
         -DCMAKE_OSX_SYSROOT=iphoneos \
         -DBUILD_TESTING=OFF \
+        -DTUNE_CPU=generic -DTUNE_ARCH=generic \
         -DCMAKE_OSX_ARCHITECTURES=arm64 \
         -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
         -DCMAKE_BUILD_TYPE=Release \

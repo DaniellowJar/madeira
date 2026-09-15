@@ -23,4 +23,9 @@ if [ -n "$BREW_PREFIX" ] && [ -d "$BREW_PREFIX/opt/flex/bin" ]; then
 fi
 
 MINGW_BIN="$TOOLCHAINS/llvm-mingw-20260421-ucrt-macos-universal/bin"
-[ -d "$MINGW_BIN" ] && export MINGW_BIN || export MINGW_BIN=""
+if [ -d "$MINGW_BIN" ]; then
+    export MINGW_BIN
+    export PATH="$MINGW_BIN:$PATH"
+else
+    export MINGW_BIN=""
+fi
