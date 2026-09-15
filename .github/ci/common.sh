@@ -29,3 +29,28 @@ if [ -d "$MINGW_BIN" ]; then
 else
     export MINGW_BIN=""
 fi
+
+# ensure_submodule <path>: initialize a submodule even when a CI cache has
+# already restored files into its (empty-of-source) directory. Those files
+# (build caches) are moved aside, the submodule is cloned, then moved back.
+ensure_submodule() {
+    local path=$1
+    local tmp
+    if [ -e "$path/.git" ]; then
+        git submodule update --depth 100 "$path" 2>/dev/null || true
+        return
+    fi
+    if [ -n "$(ls -A "$path" 2>/dev/null)" ]; then
+        tmp="$(mktemp -d "$REPO/.ensub.XXXXXX")"
+        mv "$path" "$tmp/cached"
+        git submodule update --init --depth 100 "$path"
+        if [ -d "$tmp/cached" ]; then
+            for d in "$tmp"/cached/*; do
+                [ -e "$d" ] && mv "$d" "$path"/
+            done
+        fi
+        rm -rf "$tmp"
+    else
+        git submodule update --init --depth 100 "$path"
+    fi
+}

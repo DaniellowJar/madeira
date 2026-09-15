@@ -8,9 +8,7 @@ source "$GITHUB_ACTION_PATH/common.sh"
 
 cd "$REPO"
 
-if [ ! -d wine/.git ]; then
-    git submodule update --init --depth 100 wine
-fi
+ensure_submodule wine
 
 if [ ! -f wine/build-macos/include/config.h ]; then
     echo "==> [2a] configure wine/build-macos"

@@ -8,9 +8,7 @@ source "$GITHUB_ACTION_PATH/common.sh"
 
 cd "$REPO"
 
-if [ ! -d FEX/.git ]; then
-    git submodule update --init --depth 100 FEX
-fi
+ensure_submodule FEX
 if [ ! -d FEX/External/range-v3/.git ]; then
     git -C FEX submodule update --init --recursive --depth 100 \
         > FEX/submodules.log 2>&1 || { tail -30 FEX/submodules.log; exit 1; }
@@ -25,6 +23,10 @@ if [ ! -f FEX/build-ios/FEXCore/Source/libFEXCore.a ]; then
         -DCMAKE_OSX_SYSROOT=iphoneos \
         -DBUILD_TESTING=OFF \
         -DTUNE_CPU=generic -DTUNE_ARCH=generic \
+        -DFEX_IOS_HOST_BUILD=ON \
+        -DCMAKE_C_FLAGS=-DFEX_IOS_HOST \
+        -DCMAKE_CXX_FLAGS=-DFEX_IOS_HOST \
+        -DCMAKE_ASM_FLAGS=-DFEX_IOS_HOST \
         -DCMAKE_OSX_ARCHITECTURES=arm64 \
         -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 \
         -DCMAKE_BUILD_TYPE=Release \

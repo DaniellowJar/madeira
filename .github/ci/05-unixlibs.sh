@@ -9,11 +9,8 @@ source "$GITHUB_ACTION_PATH/common.sh"
 
 cd "$REPO"
 
-for sub in research/dxmt; do
-    if [ ! -d "$sub/.git" ]; then
-        git submodule update --init --depth 100 "$sub"
-    fi
-done
+ensure_submodule wine
+ensure_submodule research/dxmt
 
 echo "==> [5a] ntdll-unix"
 bash build/ntdll-unix/build.sh
