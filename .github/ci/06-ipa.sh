@@ -16,6 +16,8 @@ if [ ! -f "$VCRT/vcruntime140.dll" ]; then
     mkdir -p "$VCRT"
     # Newer VS releases ship the exe as numbered payload streams
     # (0, u0..u31) instead of a .rsrc/1033/CABINET/*.cab tree.
+    echo "    vc_redist layout:"; ls -la /tmp/vcredist | head -45
+    echo "    stream types:"; file -b /tmp/vcredist/* 2>/dev/null | sort | uniq -c
     # Extract every embedded Cabinet/MSI payload; ignore the rest.
     for f in /tmp/vcredist/*; do
         [ -f "$f" ] || continue
