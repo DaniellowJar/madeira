@@ -29,6 +29,24 @@
 #define CONST_VTBL const
 #endif
 
+/* C-branch COM function macros, verbatim from wine's objbase.h C
+ * interface. Static D3D headers (d3d10_1shader.h) use DECLARE_INTERFACE_
+ * with STDMETHOD/THIS_/PURE; the widl-generated headers emit explicit
+ * vtbl structs and don't need these. Guarded to defer to a real
+ * objbase.h if one is ever included first. */
+#ifndef STDMETHOD
+#define STDMETHOD(m) HRESULT (STDMETHODCALLTYPE *m)
+#define STDMETHOD_(t,m) t (STDMETHODCALLTYPE *m)
+#define PURE
+#define THIS_ INTERFACE *This,
+#define THIS INTERFACE *This
+#define DECLARE_INTERFACE(i) \
+    typedef interface i { const struct i##Vtbl *lpVtbl; } i; \
+    typedef struct i##Vtbl i##Vtbl; \
+    struct i##Vtbl
+#define DECLARE_INTERFACE_(i,b) DECLARE_INTERFACE(i)
+#endif
+
 #ifndef __IUnknown_INTERFACE_DEFINED__
 #define __IUnknown_INTERFACE_DEFINED__
 
