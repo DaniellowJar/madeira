@@ -31,22 +31,23 @@ fi
 
 cd "$REPO"
 
-echo "==> [2c] generate widl headers"
-# DirectWrite/Direct3D/DXGI support headers the generated widl headers
-# and win32u sources pull in. We must generate them from the .idl
-# sources (as a real wine build does) because wine does not ship them
-# as static headers and mingw-w64's copies assume a Win32 target.
-# ole2.h and unknwn.h are provided by shims in build/ntdll-unix/shims.
-for idl in dxgiformat dcommon dxgitype d3dcommon oaidl ocidl \
-           dxgi d3d10 d3d11 d3d12 \
-           dwrite dwrite_1 dwrite_2 dwrite_3; do
-    if [ ! -f "wine/build-macos/include/$idl.h" ]; then
-        wine/build-macos/tools/widl/widl -h -o "wine/build-macos/include/$idl.h" \
-            "wine/include/$idl.idl" 2> "wine/build-macos/include/$idl.h.widl-err" \
-            || { echo "widl $idl FAILED"; cat "wine/build-macos/include/$idl.h.widl-err"; exit 1; }
-        echo "    generated include/$idl.h"
-    fi
-done
+echo "==> [2c] generate widl headers via wine make"
+# DirectWrite/Direct3D/DXGI headers the widl outputs and win32u sources
+# pull in. Generate them with wine's own build system so the full widl
+# dependency closure (oaidl/ocidl/objidl/urlmon/msxml/...) resolves in
+# the right order. Manual widl invocations cannot do this: e.g.
+# d3dcommon.idl -> ocidl.idl -> urlmon.idl -> msxml.idl needs static
+# -I paths and pre-generated siblings. ole2.h/unknwn.h stay shimmed
+# (static headers; make leaves them alone).
+cd wine/build-macos/include
+make -j"$NCPUS" \
+    dxgiformat.h dcommon.h dxgitype.h d3dcommon.h \
+    dxgi.h d3d10.h d3d11.h d3d12.h \
+    dwrite.h dwrite_1.h dwrite_2.h dwrite_3.h \
+    > include-headers.log 2>&1 \
+    || { echo "widl header generation FAILED"; tail -40 include-headers.log; exit 1; }
+echo "    headers: $(ls dxgiformat.h dcommon.h dxgitype.h d3dcommon.h dxgi.h d3d10.h d3d11.h d3d12.h dwrite.h dwrite_3.h 2>/dev/null | tr '\n' ' ')"
+cd "$REPO"
 
 echo "==> [2d] build-arm64ec/include -> build-macos/include"
 mkdir -p wine/build-arm64ec
