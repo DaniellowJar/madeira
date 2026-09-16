@@ -24,6 +24,11 @@ INCLUDES_SHADERS="-I$BUILD_DIR/shader-headers"
 # Complete LLVM include tree (generated + staged source headers) lives
 # in the cached iOS build dir; the llvm-project clone is not cached.
 LLVM_INCLUDES="-I$LLVM_BUILD/include"
+# DXMT's DXBCParser includes <d3d11.h>/<d3dcommon.h>: widl-generated wine
+# headers plus the COM shims, with RPC base types pre-included for the
+# wtypes chain (byte/hyper/boolean/RPC_IF_HANDLE).
+WINE_D3D_INCLUDES="-I$REPO_ROOT/wine/build-macos/include -I$REPO_ROOT/wine/include -I$REPO_ROOT/build/ntdll-unix/shims"
+WINE_COM_INCLUDES="-include rpc.h -include rpcndr.h"
 AIRCONV_DEFS="-D_FILE_OFFSET_BITS=64 -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS"
 CXX_FLAGS="-std=c++20 -fno-exceptions -fno-rtti"
 
@@ -46,7 +51,7 @@ compile_objc() {
 compile_cxx() {
     local src=$1 name=$2 extra="${3:-}"
     printf "  %-40s " "$name"
-    if xcrun -sdk iphoneos clang++ $COMMON_FLAGS $CXX_FLAGS $INCLUDES $INCLUDES_DIRECTX $INCLUDES_SHADERS $LLVM_INCLUDES $AIRCONV_DEFS $extra \
+    if xcrun -sdk iphoneos clang++ $COMMON_FLAGS $CXX_FLAGS $INCLUDES $INCLUDES_DIRECTX $INCLUDES_SHADERS $LLVM_INCLUDES $WINE_D3D_INCLUDES $WINE_COM_INCLUDES $AIRCONV_DEFS $extra \
         -c "$src" -o "$OBJ_DIR/$name.o" 2>"$OBJ_DIR/$name.err"; then
         echo "OK"; SUCCEEDED=$((SUCCEEDED+1))
     else
@@ -58,6 +63,21 @@ compile_cxx() {
 echo "=== winemetal unix (Objective-C) ==="
 compile_objc "$DXMT_SRC/winemetal/unix/winemetal_unix.c" winemetal_unix
 compile_objc "$DXMT_SRC/winemetal/unix/cache.c"          cache
+
+echo "=== airconv shaders (metal -> air -> xxd) ==="
+SHADER_SRC="$DXMT_SRC/airconv/shaders"
+SHADER_OUT="$BUILD_DIR/shader-headers"
+mkdir -p "$SHADER_OUT"
+for metal in air_msad air_samplepos air_tessellation; do
+    if [ ! -f "$SHADER_OUT/$metal.h" ]; then
+        xcrun -sdk iphoneos metal -o "$SHADER_OUT/$metal.air" -c "$SHADER_SRC/$metal.metal" \
+            -std=metal3.1 --target=air64-apple-ios17.0 > "$SHADER_OUT/$metal.metal.log" 2>&1 \
+            || { echo "$metal metal FAILED"; tail -30 "$SHADER_OUT/$metal.metal.log"; exit 1; }
+        xxd -n "$metal" -i "$SHADER_OUT/$metal.air" "$SHADER_OUT/$metal.h" \
+            || { echo "$metal xxd FAILED"; exit 1; }
+        echo "    $metal.h OK"
+    fi
+done
 
 echo "=== airconv (C++ 20, needs LLVM headers) ==="
 for cpp in airconv_context.cpp air_type.cpp air_signature.cpp air_operations.cpp \
@@ -77,7 +97,7 @@ for cpp in BlobContainer.cpp DXBCUtils.cpp ShaderBinary.cpp; do
     # ShaderBinary uses `throw`, so we can't use -fno-exceptions from CXX_FLAGS.
     printf "  %-40s " "$name"
     if xcrun -sdk iphoneos clang++ $COMMON_FLAGS -std=c++20 -fno-rtti \
-            $INCLUDES $INCLUDES_DIRECTX $AIRCONV_DEFS \
+            $INCLUDES $INCLUDES_DIRECTX $WINE_D3D_INCLUDES $WINE_COM_INCLUDES $AIRCONV_DEFS \
             -c "$DXMT_ROOT/libs/DXBCParser/$cpp" -o "$OBJ_DIR/$name.o" 2>"$OBJ_DIR/$name.err"; then
         echo "OK"; SUCCEEDED=$((SUCCEEDED+1))
     else
