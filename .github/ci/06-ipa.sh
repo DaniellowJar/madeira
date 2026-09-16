@@ -20,6 +20,8 @@ if [ ! -f "$VCRT/vcruntime140.dll" ]; then
     rm -rf /tmp/vcredist && mkdir -p /tmp/vcredist
     7zz x -y /tmp/vc_redist.x64.exe -o/tmp/vcredist > /dev/null
     mkdir -p "$VCRT"
+    echo "    extracted tree:"; find /tmp/vcredist | head -40
+    echo "    types:"; find /tmp/vcredist -type f -exec file -b {} \; 2>/dev/null | sort | uniq -c
     # Classic layout.
     for cab in /tmp/vcredist/.rsrc/1033/CABINET/*.cab; do
         [ -f "$cab" ] && 7zz x -y "$cab" -o"$VCRT" > /dev/null
