@@ -14,7 +14,12 @@ if [ ! -f "$VCRT/vcruntime140.dll" ]; then
     rm -rf /tmp/vcredist && mkdir -p /tmp/vcredist
     7zz x -y /tmp/vc_redist.x64.exe -o/tmp/vcredist > /dev/null
     mkdir -p "$VCRT"
-    7zz x -y /tmp/vcredist/.rsrc/1033/CABINET/*.cab -o"$VCRT" > /dev/null
+    # Internal cab path varies by VS release; locate it instead of hardcoding.
+    CAB=$(find /tmp/vcredist -iname "*.cab" | head -1)
+    [ -n "$CAB" ] || { echo "no cab inside vc_redist"; find /tmp/vcredist | head -30; exit 1; }
+    7zz x -y "$CAB" -o"$VCRT" > /dev/null
+    # Flatten in case DLLs land in subdirs.
+    find "$VCRT" -mindepth 2 -name "*.dll" -exec mv {} "$VCRT/" \;
 fi
 echo "    vcruntime DLLs: $(ls "$VCRT"/*.dll 2>/dev/null | wc -l | tr -d ' ') of 12"
 REQUIRED_DLLS="concrt140.dll msvcp140.dll msvcp140_1.dll msvcp140_2.dll
