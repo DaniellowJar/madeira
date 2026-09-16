@@ -14,12 +14,23 @@ if [ ! -f "$VCRT/vcruntime140.dll" ]; then
     rm -rf /tmp/vcredist && mkdir -p /tmp/vcredist
     7zz x -y /tmp/vc_redist.x64.exe -o/tmp/vcredist > /dev/null
     mkdir -p "$VCRT"
-    # Internal cab path varies by VS release; locate it instead of hardcoding.
-    CAB=$(find /tmp/vcredist -iname "*.cab" | head -1)
-    [ -n "$CAB" ] || { echo "no cab inside vc_redist"; find /tmp/vcredist | head -30; exit 1; }
-    7zz x -y "$CAB" -o"$VCRT" > /dev/null
+    # Newer VS releases ship the exe as numbered payload streams
+    # (0, u0..u31) instead of a .rsrc/1033/CABINET/*.cab tree.
+    # Extract every embedded Cabinet/MSI payload; ignore the rest.
+    for f in /tmp/vcredist/*; do
+        [ -f "$f" ] || continue
+        case $(file -b "$f") in
+            *"Cabinet archive"*|*"MSI Installer"*)
+                7zz x -y "$f" -o"$VCRT" > /dev/null ;;
+        esac
+    done
+    # Legacy layout fallback.
+    for cab in /tmp/vcredist/.rsrc/1033/CABINET/*.cab; do
+        [ -f "$cab" ] && 7zz x -y "$cab" -o"$VCRT" > /dev/null
+    done
     # Flatten in case DLLs land in subdirs.
     find "$VCRT" -mindepth 2 -name "*.dll" -exec mv {} "$VCRT/" \;
+    [ -f "$VCRT/vcruntime140.dll" ] || { echo "vcruntime extraction yielded no DLLs"; ls "$VCRT" | head; exit 1; }
 fi
 echo "    vcruntime DLLs: $(ls "$VCRT"/*.dll 2>/dev/null | wc -l | tr -d ' ') of 12"
 REQUIRED_DLLS="concrt140.dll msvcp140.dll msvcp140_1.dll msvcp140_2.dll
