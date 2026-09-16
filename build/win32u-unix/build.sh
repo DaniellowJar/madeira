@@ -38,6 +38,7 @@ compile_one() {
         -include "$BUILD_DIR/config_ios.h" \
         -include "$REPO_ROOT/build/ntdll-unix/shims/wine_ios_exit.h" \
         -include rpc.h \
+        -include rpcndr.h \
         -I"$BUILD_DIR" \
         -I"$WINE_BUILD/include" \
         -I"$NTDLL_SHIMS" \
