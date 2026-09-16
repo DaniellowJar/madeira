@@ -44,12 +44,14 @@ cd wine/build-macos/include
 # builds each requested header but does not chain generated-header
 # deps (dxgi.h was emitted while oaidl.h was still missing), so every
 # header in the import graph must be named. Closure computed from
-# ^import "...idl" over dxgi/d3d10/d3d11/d3d12/d3dcommon/dwrite.
+# ^import "...idl" plus cpp_quote("#include ...") edges over
+# dxgi/d3d10(_1/shader/effect/sdklayers)/d3d11/d3d12/d3dcommon/dwrite.
 make -j"$NCPUS" \
     dxgiformat.h dcommon.h dxgitype.h dxgicommon.h d3dcommon.h \
     wtypesbase.h wtypes.h unknwn.h objidl.h oleidl.h oaidl.h ocidl.h \
     servprov.h urlmon.h msxml.h \
-    dxgi.h d3d10.h d3d11.h d3d12.h \
+    dxgi.h d3d10.h d3d10_1.h d3d10shader.h d3d10effect.h d3d10sdklayers.h \
+    d3d11.h d3d11sdklayers.h d3d12.h d3d12sdklayers.h \
     dwrite.h dwrite_1.h dwrite_2.h dwrite_3.h \
     > include-headers.log 2>&1 \
     || { echo "widl header generation FAILED"; tail -40 include-headers.log; exit 1; }

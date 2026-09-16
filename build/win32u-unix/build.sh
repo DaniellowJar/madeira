@@ -37,14 +37,13 @@ compile_one() {
         -Wno-implicit-function-declaration -Wno-int-conversion \
         -include "$BUILD_DIR/config_ios.h" \
         -include "$REPO_ROOT/build/ntdll-unix/shims/wine_ios_exit.h" \
-        -include rpc.h \
-        -include rpcndr.h \
         -I"$BUILD_DIR" \
         -I"$WINE_BUILD/include" \
         -I"$NTDLL_SHIMS" \
         -I"$WINE_BUILD/dlls/win32u" -I"$WINE_SRC/dlls/win32u" \
         -I"$WINE_BUILD/include" -I"$WINE_SRC/include" \
         -D__WINESRC__ -D_WIN32U_ \
+        -DOEMRESOURCE \
         -D_ACRTIMP= -DWINBASEAPI= \
         -DSYSTEMDLLPATH=\"\" \
         -DWINE_UNIX_LIB -DWINE_IOS=1 \
@@ -115,6 +114,13 @@ for src in $WINE_SRC/dlls/win32u/*.c $WINE_SRC/dlls/win32u/dibdrv/*.c; do
             compile_one "$BUILD_DIR/freetype_ios.c" "freetype" \
                 -I"$FREETYPE_DIR/build/include" \
                 -I"$REPO_ROOT/research/freetype/include"
+            continue
+            ;;
+        d3dkmt)
+            # Needs RPC base types (byte/hyper/boolean/RPC_IF_HANDLE) for
+            # the widl COM/DXGI stack. Scoped to this TU: rpcndr.h's
+            # `#define small char` breaks font.c's struct member.
+            compile_one "$src" "$name" -include rpc.h -include rpcndr.h
             continue
             ;;
     esac

@@ -62,11 +62,11 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: wine/build-macos
-          key: winehost-v4
+          key: winehost-v5
       - uses: actions/cache@v4
         with:
           path: wine/build-arm64ec
-          key: winehost-arm64ec-v4
+          key: winehost-arm64ec-v5
       - name: Build wine host tree
         shell: bash
         run: bash .github/ci/02-wine-host.sh
@@ -145,11 +145,11 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: wine/build-macos
-          key: winehost-v4
+          key: winehost-v5
       - uses: actions/cache@v4
         with:
           path: wine/build-arm64ec
-          key: winehost-arm64ec-v4
+          key: winehost-arm64ec-v5
       - uses: actions/cache@v4
         with:
           path: |
