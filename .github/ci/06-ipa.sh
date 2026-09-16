@@ -39,9 +39,15 @@ EOF
         [ -f "$cab" ] || continue
         7zz x -y "$cab" -o/tmp/vcpayload > /dev/null 2>&1 || true
     done
-    # Unpack MSI payloads (and any nested cabs) one more level.
+    # Unpack CAB payloads (and any nested cabs) one more level. Note:
+    # 7zz dumps MSI *database streams* instead of files, so MSIs need
+    # msiextract (msitools) below.
     find /tmp/vcpayload -type f | while read -r a; do
         7zz x -y "$a" -o"$VCRT" > /dev/null 2>&1 || true
+    done
+    brew install msitools >/dev/null 2>&1 || true
+    find /tmp/vcpayload /tmp/vcredist -type f | while read -r a; do
+        msiextract -C "$VCRT" "$a" > /dev/null 2>&1 || true
     done
     # Classic-layout fallback (.rsrc CABINET) for older exes.
     7zz x -y /tmp/vc_redist.x64.exe -o/tmp/vcredist > /dev/null 2>&1 || true
