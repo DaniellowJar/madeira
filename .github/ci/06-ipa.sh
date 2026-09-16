@@ -15,16 +15,15 @@ if [ ! -f "$VCRT/vcruntime140.dll" ]; then
     7zz x -y /tmp/vc_redist.x64.exe -o/tmp/vcredist > /dev/null
     mkdir -p "$VCRT"
     # Newer VS releases ship the exe as numbered payload streams
-    # (0, u0..u31) instead of a .rsrc/1033/CABINET/*.cab tree.
-    echo "    vc_redist layout:"; ls -la /tmp/vcredist | head -45
-    echo "    stream types:"; file -b /tmp/vcredist/* 2>/dev/null | sort | uniq -c
-    # Extract every embedded Cabinet/MSI payload; ignore the rest.
-    for f in /tmp/vcredist/*; do
-        [ -f "$f" ] || continue
-        case $(file -b "$f") in
-            *"Cabinet archive"*|*"MSI Installer"*)
-                7zz x -y "$f" -o"$VCRT" > /dev/null ;;
-        esac
+    # (0, u0..u31) instead of a .rsrc/1033/CABINET/*.cab tree, and 7zz
+    # only dumps the small UX streams, not the ~24MB MSI payload.
+    # List the archive members and extract any .msi/.cab by name.
+    ls -la /tmp/vc_redist.x64.exe
+    7zz l /tmp/vc_redist.x64.exe > /tmp/vc_list.txt 2>&1 || true
+    grep -ioE "[A-Za-z0-9_.\\-]*\.(msi|cab)" /tmp/vc_list.txt | sort -u | head -20
+    bsdtar -tf /tmp/vc_redist.x64.exe 2>/dev/null | head -20 || true
+    grep -ioE "[A-Za-z0-9_.\\-]*\.(msi|cab)" /tmp/vc_list.txt | sort -u | while read -r m; do
+        7zz x -y /tmp/vc_redist.x64.exe -o"$VCRT" "$m" > /dev/null 2>&1 || true
     done
     # Legacy layout fallback.
     for cab in /tmp/vcredist/.rsrc/1033/CABINET/*.cab; do
