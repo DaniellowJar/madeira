@@ -40,13 +40,20 @@ echo "==> [2c] generate widl headers via wine make"
 # -I paths and pre-generated siblings. ole2.h/unknwn.h stay shimmed
 # (static headers; make leaves them alone).
 cd wine/build-macos/include
+# NOTE: list the FULL transitive widl closure explicitly. Wine's make
+# builds each requested header but does not chain generated-header
+# deps (dxgi.h was emitted while oaidl.h was still missing), so every
+# header in the import graph must be named. Closure computed from
+# ^import "...idl" over dxgi/d3d10/d3d11/d3d12/d3dcommon/dwrite.
 make -j"$NCPUS" \
-    dxgiformat.h dcommon.h dxgitype.h d3dcommon.h \
+    dxgiformat.h dcommon.h dxgitype.h dxgicommon.h d3dcommon.h \
+    wtypesbase.h wtypes.h unknwn.h objidl.h oleidl.h oaidl.h ocidl.h \
+    servprov.h urlmon.h msxml.h \
     dxgi.h d3d10.h d3d11.h d3d12.h \
     dwrite.h dwrite_1.h dwrite_2.h dwrite_3.h \
     > include-headers.log 2>&1 \
     || { echo "widl header generation FAILED"; tail -40 include-headers.log; exit 1; }
-echo "    headers: $(ls dxgiformat.h dcommon.h dxgitype.h d3dcommon.h dxgi.h d3d10.h d3d11.h d3d12.h dwrite.h dwrite_3.h 2>/dev/null | tr '\n' ' ')"
+echo "    headers: $(ls dxgi.h d3d11.h dwrite.h oaidl.h 2>/dev/null | tr '\n' ' ')"
 cd "$REPO"
 
 echo "==> [2d] build-arm64ec/include -> build-macos/include"
