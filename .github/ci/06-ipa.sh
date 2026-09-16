@@ -108,6 +108,14 @@ done
 # Xcode links FEX libs by path under FEX/build-ios; the FEXCore_Source libs
 # live there after cache restore.
 echo "==> [6c] xcodebuild Madeira.app"
+# FEXBridge.mm includes FEXCore/fmt/ranges headers from the FEX source
+# tree, but the ipa job checks out with submodules:false and only caches
+# FEX/build-ios. Init sources like the fex job does (same command).
+ensure_submodule FEX
+if [ ! -d FEX/External/range-v3/.git ]; then
+    git -C FEX submodule update --init --recursive --depth 100 \
+        > FEX/submodules.log 2>&1 || { tail -30 FEX/submodules.log; exit 1; }
+fi
 # ContentView uses glassEffect (iOS 26 SDK). The default Xcode 16 only
 # has the iOS 18 SDK, where the symbol doesn't exist at all (even the
 # #available guards can't help). Select the newest installed Xcode 26+.
