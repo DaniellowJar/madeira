@@ -10,33 +10,27 @@ echo "==> [6a] MSVC runtime DLLs"
 VCRT="$REPO/app/Madeira/x86_64-vcruntime"
 if [ ! -f "$VCRT/vcruntime140.dll" ]; then
     brew install sevenzip >/dev/null 2>&1 || true
-    # Pinned 14.38.33135 redist (URL from the vcredist140 chocolatey
-    # package metadata). aka.ms "latest" now ships a numbered-stream
-    # bundle layout whose MSI payload 7zz cannot reach; the pinned
-    # release keeps the classic .rsrc/1033/CABINET layout. Override via
-    # VC_REDIST_URL env if Microsoft retires the link.
-    VC_REDIST_URL="${VC_REDIST_URL:-https://download.visualstudio.microsoft.com/download/pr/6ba404bb-6312-403e-83be-04b062914c98/1AD7988C17663CC742B01BEF1A6DF2ED1741173009579AD50A94434E54F56073/VC_redist.x64.exe}"
-    curl -fL "$VC_REDIST_URL" -o /tmp/vc_redist.x64.exe
-    rm -rf /tmp/vcredist && mkdir -p /tmp/vcredist
-    7zz x -y /tmp/vc_redist.x64.exe -o/tmp/vcredist > /dev/null
-    mkdir -p "$VCRT"
-    echo "    extracted tree:"; find /tmp/vcredist | head -40
-    echo "    types:"; find /tmp/vcredist -type f -exec file -b {} \; 2>/dev/null | sort | uniq -c
-    # Classic layout.
-    for cab in /tmp/vcredist/.rsrc/1033/CABINET/*.cab; do
-        [ -f "$cab" ] && 7zz x -y "$cab" -o"$VCRT" > /dev/null
+    # Pinned 14.38 and aka.ms latest both ship a numbered-stream bundle
+    # layout whose MSI payload 7zz cannot reach. VS 2019 (14.29) and
+    # VS 2017 (14.16) redists predate that repackaging and keep the
+    # classic .rsrc/1033/CABINET layout. Try each in turn; override the
+    # whole list via VC_REDIST_URLS env (space-separated) if needed.
+    VC_REDIST_URLS="${VC_REDIST_URLS:-https://aka.ms/vs/16/release/vc_redist.x64.exe https://aka.ms/vs/15/release/vc_redist.x64.exe}"
+    rm -rf "$VCRT"
+    for VC_URL in $VC_REDIST_URLS; do
+        echo "    trying $VC_URL"
+        curl -fL "$VC_URL" -o /tmp/vc_redist.x64.exe || continue
+        rm -rf /tmp/vcredist && mkdir -p /tmp/vcredist
+        7zz x -y /tmp/vc_redist.x64.exe -o/tmp/vcredist > /dev/null 2>&1 || continue
+        mkdir -p "$VCRT"
+        for cab in /tmp/vcredist/.rsrc/1033/CABINET/*.cab; do
+            [ -f "$cab" ] && 7zz x -y "$cab" -o"$VCRT" > /dev/null
+        done
+        # Flatten in case DLLs land in subdirs.
+        find "$VCRT" -mindepth 2 -name "*.dll" -exec mv {} "$VCRT/" \; 2>/dev/null || true
+        [ -f "$VCRT/vcruntime140.dll" ] && break
     done
-    # Newer numbered-stream layout fallback: extract Cabinet/MSI payloads.
-    for f in /tmp/vcredist/*; do
-        [ -f "$f" ] || continue
-        case $(file -b "$f") in
-            *"Cabinet archive"*|*"MSI Installer"*)
-                7zz x -y "$f" -o"$VCRT" > /dev/null ;;
-        esac
-    done
-    # Flatten in case DLLs land in subdirs.
-    find "$VCRT" -mindepth 2 -name "*.dll" -exec mv {} "$VCRT/" \;
-    [ -f "$VCRT/vcruntime140.dll" ] || { echo "vcruntime extraction yielded no DLLs"; ls "$VCRT" | head; exit 1; }
+    [ -f "$VCRT/vcruntime140.dll" ] || { echo "vcruntime extraction yielded no DLLs"; exit 1; }
 fi
 echo "    vcruntime DLLs: $(ls "$VCRT"/*.dll 2>/dev/null | wc -l | tr -d ' ') of 12"
 REQUIRED_DLLS="concrt140.dll msvcp140.dll msvcp140_1.dll msvcp140_2.dll
