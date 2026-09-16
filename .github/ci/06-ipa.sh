@@ -46,9 +46,13 @@ EOF
         7zz x -y "$a" -o"$VCRT" > /dev/null 2>&1 || true
     done
     brew install msitools >/dev/null 2>&1 || true
+    echo "    msiextract: $(command -v msiextract || echo MISSING)"
+    echo "    payloads:"; ls -la /tmp/vcpayload | head -25
+    file -b /tmp/vcpayload/* 2>/dev/null | sort | uniq -c
     find /tmp/vcpayload /tmp/vcredist -type f | while read -r a; do
         msiextract -C "$VCRT" "$a" > /dev/null 2>&1 || true
     done
+    echo "    vcrt after msiextract:"; ls "$VCRT" | head -20; find "$VCRT" -name "*.dll" | head -20
     # Classic-layout fallback (.rsrc CABINET) for older exes.
     7zz x -y /tmp/vc_redist.x64.exe -o/tmp/vcredist > /dev/null 2>&1 || true
     for cab in /tmp/vcredist/.rsrc/1033/CABINET/*.cab; do
