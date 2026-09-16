@@ -37,6 +37,7 @@ compile_one() {
         -Wno-implicit-function-declaration -Wno-int-conversion \
         -include "$BUILD_DIR/config_ios.h" \
         -include "$REPO_ROOT/build/ntdll-unix/shims/wine_ios_exit.h" \
+        -include rpc.h \
         -I"$BUILD_DIR" \
         -I"$WINE_BUILD/include" \
         -I"$NTDLL_SHIMS" \
