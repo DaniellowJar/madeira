@@ -46,20 +46,29 @@ EOF
         7zz x -y "$a" -o"$VCRT" > /dev/null 2>&1 || true
     done
     brew install msitools >/dev/null 2>&1 || true
-    echo "    msiextract: $(command -v msiextract || echo MISSING)"
-    echo "    payloads:"; ls -la /tmp/vcpayload | head -25
-    file -b /tmp/vcpayload/* 2>/dev/null | sort | uniq -c
+    # The 12 CRT DLLs ride as *_amd64 entries in an embedded CAB (e.g.
+    # concrt140.dll_amd64), not inside the MSIs. Extract every CAB
+    # payload and rename into place.
+    find /tmp/vcpayload -type f | while read -r a; do
+        if file -b "$a" 2>/dev/null | grep -q "Microsoft Cabinet archive"; then
+            7zz x -y "$a" -o"$VCRT" > /dev/null 2>&1 || true
+        fi
+    done
     find /tmp/vcpayload /tmp/vcredist -type f | while read -r a; do
         msiextract -C "$VCRT" "$a" > /dev/null 2>&1 || true
     done
-    echo "    vcrt after msiextract:"; ls "$VCRT" | head -20; find "$VCRT" -name "*.dll" | head -20
     # Classic-layout fallback (.rsrc CABINET) for older exes.
     7zz x -y /tmp/vc_redist.x64.exe -o/tmp/vcredist > /dev/null 2>&1 || true
     for cab in /tmp/vcredist/.rsrc/1033/CABINET/*.cab; do
         [ -f "$cab" ] && 7zz x -y "$cab" -o"$VCRT" > /dev/null
     done
-    # Flatten in case DLLs land in subdirs.
+    # Flatten in case DLLs land in subdirs, and drop the _amd64 suffix
+    # used for CAB entries.
     find "$VCRT" -mindepth 2 -name "*.dll" -exec mv {} "$VCRT/" \; 2>/dev/null || true
+    for f in "$VCRT"/*_amd64; do
+        [ -f "$f" ] || continue
+        mv "$f" "${f%_amd64}"
+    done
     [ -f "$VCRT/vcruntime140.dll" ] || { echo "vcruntime extraction yielded no DLLs"; ls "$VCRT" | head; exit 1; }
 fi
 fi
