@@ -10,27 +10,48 @@ echo "==> [6a] MSVC runtime DLLs"
 VCRT="$REPO/app/Madeira/x86_64-vcruntime"
 if [ ! -f "$VCRT/vcruntime140.dll" ]; then
     brew install sevenzip >/dev/null 2>&1 || true
-    # Pinned 14.38 and aka.ms latest both ship a numbered-stream bundle
-    # layout whose MSI payload 7zz cannot reach. VS 2019 (14.29) and
-    # VS 2017 (14.16) redists predate that repackaging and keep the
-    # classic .rsrc/1033/CABINET layout. Try each in turn; override the
-    # whole list via VC_REDIST_URLS env (space-separated) if needed.
-    VC_REDIST_URLS="${VC_REDIST_URLS:-https://aka.ms/vs/16/release/vc_redist.x64.exe https://aka.ms/vs/15/release/vc_redist.x64.exe}"
-    rm -rf "$VCRT"
-    for VC_URL in $VC_REDIST_URLS; do
-        echo "    trying $VC_URL"
-        curl -fL "$VC_URL" -o /tmp/vc_redist.x64.exe || continue
-        rm -rf /tmp/vcredist && mkdir -p /tmp/vcredist
-        7zz x -y /tmp/vc_redist.x64.exe -o/tmp/vcredist > /dev/null 2>&1 || continue
-        mkdir -p "$VCRT"
-        for cab in /tmp/vcredist/.rsrc/1033/CABINET/*.cab; do
-            [ -f "$cab" ] && 7zz x -y "$cab" -o"$VCRT" > /dev/null
-        done
-        # Flatten in case DLLs land in subdirs.
-        find "$VCRT" -mindepth 2 -name "*.dll" -exec mv {} "$VCRT/" \; 2>/dev/null || true
-        [ -f "$VCRT/vcruntime140.dll" ] && break
+if [ ! -f "$VCRT/vcruntime140.dll" ]; then
+    brew install sevenzip >/dev/null 2>&1 || true
+    VC_REDIST_URL="${VC_REDIST_URL:-https://aka.ms/vs/17/release/vc_redist.x64.exe}"
+    curl -fL "$VC_REDIST_URL" -o /tmp/vc_redist.x64.exe
+    rm -rf /tmp/vcredist /tmp/vcpayload "$VCRT" && mkdir -p /tmp/vcredist /tmp/vcpayload "$VCRT"
+    # The MSI payload rides as an attached CAB overlay that 7zz does not
+    # reach (it only dumps the small UX streams). Carve embedded CABs by
+    # MSCF magic + cbCabinet size, then unpack cab -> msi -> dlls.
+    python3 - /tmp/vc_redist.x64.exe /tmp <<'EOF'
+import struct, sys
+exe, outdir = sys.argv[1], sys.argv[2]
+d = open(exe, 'rb').read()
+n = 0
+i = d.find(b'MSCF')
+while i != -1:
+    if i + 36 <= len(d):
+        sig, r1, cb, r2, coff, r3, vmin, vmaj, cfold, cfil, flags, setid, icab = \
+            struct.unpack('<4sIIIIIBBHHHHH', d[i:i+36])
+        if 1024 < cb <= len(d) - i and cfil < 100000:
+            open(f'{outdir}/payload{n}.cab', 'wb').write(d[i:i+cb])
+            print(f'carved payload{n}.cab at {i} size {cb} files {cfil}')
+            n += 1
+    i = d.find(b'MSCF', i + 1)
+print(f'{n} cabs carved')
+EOF
+    for cab in /tmp/payload*.cab; do
+        [ -f "$cab" ] || continue
+        7zz x -y "$cab" -o/tmp/vcpayload > /dev/null 2>&1 || true
     done
-    [ -f "$VCRT/vcruntime140.dll" ] || { echo "vcruntime extraction yielded no DLLs"; exit 1; }
+    # Unpack MSI payloads (and any nested cabs) one more level.
+    find /tmp/vcpayload -type f | while read -r a; do
+        7zz x -y "$a" -o"$VCRT" > /dev/null 2>&1 || true
+    done
+    # Classic-layout fallback (.rsrc CABINET) for older exes.
+    7zz x -y /tmp/vc_redist.x64.exe -o/tmp/vcredist > /dev/null 2>&1 || true
+    for cab in /tmp/vcredist/.rsrc/1033/CABINET/*.cab; do
+        [ -f "$cab" ] && 7zz x -y "$cab" -o"$VCRT" > /dev/null
+    done
+    # Flatten in case DLLs land in subdirs.
+    find "$VCRT" -mindepth 2 -name "*.dll" -exec mv {} "$VCRT/" \; 2>/dev/null || true
+    [ -f "$VCRT/vcruntime140.dll" ] || { echo "vcruntime extraction yielded no DLLs"; ls "$VCRT" | head; exit 1; }
+fi
 fi
 echo "    vcruntime DLLs: $(ls "$VCRT"/*.dll 2>/dev/null | wc -l | tr -d ' ') of 12"
 REQUIRED_DLLS="concrt140.dll msvcp140.dll msvcp140_1.dll msvcp140_2.dll
