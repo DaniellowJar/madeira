@@ -10,24 +10,27 @@ echo "==> [6a] MSVC runtime DLLs"
 VCRT="$REPO/app/Madeira/x86_64-vcruntime"
 if [ ! -f "$VCRT/vcruntime140.dll" ]; then
     brew install sevenzip >/dev/null 2>&1 || true
-    curl -fL https://aka.ms/vs/17/release/vc_redist.x64.exe -o /tmp/vc_redist.x64.exe
+    # Pinned 14.38.33135 redist (URL from the vcredist140 chocolatey
+    # package metadata). aka.ms "latest" now ships a numbered-stream
+    # bundle layout whose MSI payload 7zz cannot reach; the pinned
+    # release keeps the classic .rsrc/1033/CABINET layout. Override via
+    # VC_REDIST_URL env if Microsoft retires the link.
+    VC_REDIST_URL="${VC_REDIST_URL:-https://download.visualstudio.microsoft.com/download/pr/6ba404bb-6312-403e-83be-04b062914c98/1AD7988C17663CC742B01BEF1A6DF2ED1741173009579AD50A94434E54F56073/VC_redist.x64.exe}"
+    curl -fL "$VC_REDIST_URL" -o /tmp/vc_redist.x64.exe
     rm -rf /tmp/vcredist && mkdir -p /tmp/vcredist
     7zz x -y /tmp/vc_redist.x64.exe -o/tmp/vcredist > /dev/null
     mkdir -p "$VCRT"
-    # Newer VS releases ship the exe as numbered payload streams
-    # (0, u0..u31) instead of a .rsrc/1033/CABINET/*.cab tree, and 7zz
-    # only dumps the small UX streams, not the ~24MB MSI payload.
-    # List the archive members and extract any .msi/.cab by name.
-    ls -la /tmp/vc_redist.x64.exe
-    7zz l /tmp/vc_redist.x64.exe > /tmp/vc_list.txt 2>&1 || true
-    grep -ioE "[A-Za-z0-9_.\\-]*\.(msi|cab)" /tmp/vc_list.txt | sort -u | head -20
-    bsdtar -tf /tmp/vc_redist.x64.exe 2>/dev/null | head -20 || true
-    grep -ioE "[A-Za-z0-9_.\\-]*\.(msi|cab)" /tmp/vc_list.txt | sort -u | while read -r m; do
-        7zz x -y /tmp/vc_redist.x64.exe -o"$VCRT" "$m" > /dev/null 2>&1 || true
-    done
-    # Legacy layout fallback.
+    # Classic layout.
     for cab in /tmp/vcredist/.rsrc/1033/CABINET/*.cab; do
         [ -f "$cab" ] && 7zz x -y "$cab" -o"$VCRT" > /dev/null
+    done
+    # Newer numbered-stream layout fallback: extract Cabinet/MSI payloads.
+    for f in /tmp/vcredist/*; do
+        [ -f "$f" ] || continue
+        case $(file -b "$f") in
+            *"Cabinet archive"*|*"MSI Installer"*)
+                7zz x -y "$f" -o"$VCRT" > /dev/null ;;
+        esac
     done
     # Flatten in case DLLs land in subdirs.
     find "$VCRT" -mindepth 2 -name "*.dll" -exec mv {} "$VCRT/" \;
