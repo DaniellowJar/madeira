@@ -108,6 +108,15 @@ done
 # Xcode links FEX libs by path under FEX/build-ios; the FEXCore_Source libs
 # live there after cache restore.
 echo "==> [6c] xcodebuild Madeira.app"
+# ContentView uses glassEffect (iOS 26 SDK). The default Xcode 16 only
+# has the iOS 18 SDK, where the symbol doesn't exist at all (even the
+# #available guards can't help). Select the newest installed Xcode 26+.
+ls -d /Applications/Xcode*.app 2>/dev/null || true
+XC26=$(ls -d /Applications/Xcode_2[6-9]*.app 2>/dev/null | sort -V | tail -1)
+if [ -n "$XC26" ]; then
+    sudo xcode-select -s "$XC26/Contents/Developer"
+    echo "    selected $XC26"
+fi
 SDKVER=$(xcodebuild -showsdks 2>/dev/null | awk '/iphoneos/{print $NF}' | head -1)
 echo "    iphoneos SDK: $SDKVER"
 xcodebuild -project app/Madeira.xcodeproj -scheme Madeira \
