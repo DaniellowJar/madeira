@@ -124,7 +124,7 @@ xcodebuild -project app/Madeira.xcodeproj -scheme Madeira \
     -derivedDataPath build/derived \
     CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
     build > build/xcodebuild.log 2>&1 \
-    || { echo "xcodebuild FAILED"; tail -100 build/xcodebuild.log; exit 1; }
+    || { echo "xcodebuild FAILED"; grep -E "error:|fatal error|Assertion|PLEASE submit|Stack dump" build/xcodebuild.log | sort -u | head -30; exit 1; }
 
 APP_DIR="build/derived/Build/Products/Release-iphoneos"
 APP="$APP_DIR/Madeira.app"
