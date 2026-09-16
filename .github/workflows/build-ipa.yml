@@ -195,3 +195,4 @@ jobs:
         run: bash .github/ci/06-ipa.sh
         env:
           GITHUB_ACTION_PATH: ${{ github.workspace }}/.github/ci
+          GH_TOKEN: ${{ github.token }}
