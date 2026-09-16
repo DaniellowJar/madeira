@@ -79,3 +79,11 @@ nlibs=$(ls "$IOS_BUILD/lib/"*.a | wc -l | tr -d ' ')
 [ "$nlibs" -gt 0 ] || { echo "No LLVM libs produced"; exit 1; }
 echo "Stage 4 complete: $nlibs static libs in $IOS_BUILD/lib"
 du -sh "$IOS_BUILD/lib"
+
+# Stage the source headers into the build tree so $IOS_BUILD/include is
+# a complete LLVM include tree (cmake-generated + source). Only the
+# build tree is cached across jobs; the llvm-project clone is not, so
+# down-stream C++ (DXMT airconv) cannot use $LLVM_SRC/include.
+echo "==> [4d] stage LLVM source headers"
+cp -a "$LLVM_SRC/include/llvm" "$LLVM_SRC/include/llvm-c" "$IOS_BUILD/include/"
+echo "    staged: $(du -sh "$IOS_BUILD/include" | cut -f1)"
